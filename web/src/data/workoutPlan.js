@@ -1,4 +1,4 @@
-export const weeklyPlan = [
+const baseWorkoutPlan = [
   {
     id: 'mon',
     label: '周一',
@@ -290,3 +290,212 @@ export const weeklyPlan = [
     ],
   },
 ]
+
+const activityIntensityMessages = {
+  gentle: '优先维持安全节奏，动作 2 组为主，重点建立规律。',
+  moderate: '保持 RPE 4-5，部分动作可挑战到第 3 组，关注动作质量。',
+  progressive:
+    '在确保血糖与血压稳定的前提下，可增加到 3 组或延长有氧时长 5-10 分钟。',
+}
+
+function clonePlan() {
+  return baseWorkoutPlan.map((day) => JSON.parse(JSON.stringify(day)))
+}
+
+function adjustPrescriptionForIntensity(text, activityLevel) {
+  if (!text) return text
+
+  const patterns = [
+    {
+      regex: /×(\d+)\s*-\s*(\d+)\s*组/g,
+      replace: (min, max) => {
+        if (activityLevel === 'gentle') return `×${min} 组`
+        if (activityLevel === 'progressive') return `×${max} 组`
+        return `×${min}-${max} 组`
+      },
+    },
+    {
+      regex: /×(\d+)\s*-\s*(\d+)\s*次/g,
+      replace: (min, max) => {
+        if (activityLevel === 'gentle') return `×${min} 次`
+        if (activityLevel === 'progressive') return `×${max} 次`
+        return `×${min}-${max} 次`
+      },
+    },
+    {
+      regex: /×(\d+)\s*-\s*(\d+)\s*轮/g,
+      replace: (min, max) => {
+        if (activityLevel === 'gentle') return `×${min} 轮`
+        if (activityLevel === 'progressive') return `×${max} 轮`
+        return `×${min}-${max} 轮`
+      },
+    },
+    {
+      regex: /保持\s*(\d+)\s*秒\s*×\s*(\d+)\s*-\s*(\d+)\s*次/g,
+      replace: (duration, min, max) => {
+        if (activityLevel === 'gentle') return `保持 ${duration} 秒 ×${min} 次`
+        if (activityLevel === 'progressive') return `保持 ${duration} 秒 ×${max} 次`
+        return `保持 ${duration} 秒 ×${min}-${max} 次`
+      },
+    },
+  ]
+
+  let result = text
+  patterns.forEach(({ regex, replace }) => {
+    result = result.replace(regex, (_, ...groups) => replace(...groups))
+  })
+
+  if (activityLevel === 'gentle') {
+    result = result.replace(/×3\s*组/g, '×2 组')
+  } else if (activityLevel === 'progressive') {
+    result = result.replace(/×2\s*组/g, '×3 组')
+  }
+
+  return result
+}
+
+function adjustCardioText(baseText, profile) {
+  let text = baseText
+  if (profile.hasHypertension) {
+    text = `${text}（关注血压变化，保持 RPE 4-5，心率不超过 135 次/分。）`
+  }
+  if (profile.diabetesType !== 'none') {
+    text = `${text} 运动前后测量血糖，留意低血糖征兆。`
+  }
+  if (profile.activityLevel === 'progressive') {
+    text = text.replace('12-15 分钟', '15-18 分钟').replace('20 分钟', '24 分钟')
+  } else if (profile.activityLevel === 'gentle') {
+    text = text.replace('12-15 分钟', '10-12 分钟').replace('20 分钟', '18 分钟')
+  }
+  return text
+}
+
+function adjustStrengthList(list, profile) {
+  if (!Array.isArray(list)) return list
+  const updated = [...list]
+
+  if (profile.activityLevel === 'gentle') {
+    return updated.map((item) =>
+      item.replace(/×10\/侧/g, '×8/侧').replace(/×12/g, '×10').replace(/20 秒/g, '15 秒'),
+    )
+  }
+
+  if (profile.activityLevel === 'progressive') {
+    return updated.map((item) =>
+      item.replace(/×10/g, '×12').replace(/×12/g, '×14').replace(/20 秒/g, '25 秒'),
+    )
+  }
+
+  return updated
+}
+
+function adjustReminders(baseReminders, profile) {
+  const reminders = new Set(baseReminders)
+
+  if (profile.hasHypertension) {
+    reminders.add('训练前后测量血压，必要时延长休息时间。')
+  }
+
+  if (profile.diabetesType !== 'none') {
+    reminders.add('随身携带快速补糖食物，预防低血糖。')
+  }
+
+  if (profile.goal === 'weight-loss') {
+    reminders.add('每天额外累积 6-8 千步轻松步行，控制夜间加餐。')
+  }
+
+  if (profile.activityLevel === 'gentle') {
+    reminders.add('以 2 组为主，感觉吃力时优先保证动作质量。')
+  } else if (profile.activityLevel === 'progressive') {
+    reminders.add('若体感良好，可增加 1 组或提升阻力。')
+  }
+
+  return Array.from(reminders)
+}
+
+function adjustSegments(baseSegments, profile) {
+  return baseSegments.map((segment) => {
+    const updated = { ...segment }
+    if (segment.id === 'interval' && profile.hasHypertension) {
+      updated.description = `${segment.description} 间歇时保持原地踏步或坐下深呼吸 1 分钟。`
+    }
+    if (segment.id === 'cardio' && profile.goal === 'weight-loss') {
+      updated.description = `${segment.description} 尝试在周末延长 5 分钟以提高能量消耗。`
+    }
+    return updated
+  })
+}
+
+function calculateBMI(heightCm, weightKg) {
+  const heightM = heightCm / 100
+  if (!heightM || !weightKg) return null
+  return +(weightKg / (heightM * heightM)).toFixed(1)
+}
+
+function createGuidance(profile, bmi) {
+  const messages = []
+  if (profile.hasHypertension) {
+    messages.push('重点关注血压波动，避免憋气或快速变换体位。')
+  }
+  if (profile.diabetesType !== 'none') {
+    messages.push('每次运动前后记录血糖，训练背包放置补糖食物。')
+  }
+  if (bmi && bmi >= 28) {
+    messages.push('以低冲击训练为主，保证步频和核心稳定，逐步减轻关节压力。')
+  } else if (profile.goal === 'fitness') {
+    messages.push('可在第 3-4 周加入轻重量器械或延长有氧时间。')
+  }
+
+  messages.push(activityIntensityMessages[profile.activityLevel] || activityIntensityMessages.moderate)
+
+  return messages
+}
+
+export function createWorkoutPlan(profile) {
+  const workingProfile = {
+    height: profile.height || 177,
+    weight: profile.weight || 109,
+    diabetesType: profile.diabetesType ?? 'type2',
+    hasHypertension: profile.hasHypertension ?? true,
+    activityLevel: profile.activityLevel || 'gentle',
+    goal: profile.goal || 'metabolic',
+  }
+
+  const bmi = calculateBMI(workingProfile.height, workingProfile.weight)
+  const days = clonePlan().map((day) => {
+    const adjusted = { ...day }
+    adjusted.cardio = adjustCardioText(day.cardio, workingProfile)
+    adjusted.strength = adjustStrengthList(day.strength, workingProfile)
+    adjusted.reminders = adjustReminders(day.reminders, workingProfile)
+    adjusted.segments = adjustSegments(day.segments, workingProfile)
+    adjusted.exercises = day.exercises?.map((exercise) => ({
+      ...exercise,
+      prescription: adjustPrescriptionForIntensity(exercise.prescription, workingProfile.activityLevel),
+    }))
+    return adjusted
+  })
+
+  const weeklyStepGoal =
+    workingProfile.activityLevel === 'progressive'
+      ? 70000
+      : workingProfile.activityLevel === 'gentle'
+        ? 50000
+        : 60000
+
+  const intensityGuide =
+    workingProfile.hasHypertension || workingProfile.diabetesType !== 'none'
+      ? '主观用力感保持在 4-6，心率控制在 110-135 次/分。'
+      : '可在保证动作标准的前提下，将 RPE 提升至 6-7。'
+
+  return {
+    days,
+    meta: {
+      bmi,
+      weeklyStepGoal,
+      intensityGuide,
+      guidance: createGuidance(workingProfile, bmi),
+    },
+  }
+}
+
+export { baseWorkoutPlan }

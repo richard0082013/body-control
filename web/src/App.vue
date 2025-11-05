@@ -2,8 +2,19 @@
 import { computed } from 'vue'
 import WeeklyProgress from './components/WeeklyProgress.vue'
 import DayProgressCard from './components/DayProgressCard.vue'
-import { weeklyPlan } from './data/weeklyPlan'
+import ProfileForm from './components/ProfileForm.vue'
+import NutritionPlan from './components/NutritionPlan.vue'
+import { createWorkoutPlan } from './data/workoutPlan'
+import { createNutritionPlan } from './data/nutritionPlan'
 import { useProgressTracker } from './composables/useProgressTracker'
+import { useUserProfile } from './composables/useUserProfile'
+
+const { profile, updateProfile, resetProfile } = useUserProfile()
+
+const workoutPlan = computed(() => createWorkoutPlan(profile))
+const nutritionPlan = computed(() => createNutritionPlan(profile))
+
+const workoutDays = computed(() => workoutPlan.value.days || [])
 
 const {
   progress,
@@ -13,7 +24,7 @@ const {
   updateNotes,
   resetDay,
   resetAll,
-} = useProgressTracker(weeklyPlan)
+} = useProgressTracker(workoutDays)
 
 const completionLookup = computed(() =>
   dayCompletion.value.reduce((acc, day) => {
@@ -26,12 +37,21 @@ const weekOrder = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
 const todayId = weekOrder[new Date().getDay()]
 
 const todayLabel = computed(() => {
-  const today = weeklyPlan.find((day) => day.id === todayId)
+  const today = workoutDays.value.find((day) => day.id === todayId)
   return today ? today.label : '今天'
 })
 
+const workoutGuidance = computed(() => workoutPlan.value.meta.guidance || [])
+const intensityGuide = computed(() => workoutPlan.value.meta.intensityGuide)
+const weeklyStepGoal = computed(() => workoutPlan.value.meta.weeklyStepGoal)
+const bmiValue = computed(() => workoutPlan.value.meta.bmi)
+
 function completionFor(dayId) {
   return completionLookup.value[dayId]
+}
+
+function handleProfileUpdate(partial) {
+  updateProfile(partial)
 }
 </script>
 
@@ -40,24 +60,74 @@ function completionFor(dayId) {
     <header class="page-header">
       <div class="page-header__titles">
         <p class="page-header__eyebrow">身体管理 · 每周循环</p>
-        <h1>个性化家庭训练追踪</h1>
+        <h1>个性化训练与饮食助手</h1>
         <p class="page-header__description">
-          根据当前健康状况安排的 7 天训练节奏，帮助你稳步改善血糖、血压与体能。
+          根据当前健康状况生成 7 天训练与三餐计划。调整健康信息会自动更新建议，并保存在本地。
         </p>
       </div>
       <div class="page-header__actions">
         <p class="page-header__today">今天是：<strong>{{ todayLabel }}</strong></p>
         <button type="button" class="reset-all" @click="resetAll">
-          清空本周记录
+          清空本周训练记录
         </button>
       </div>
     </header>
+
+    <ProfileForm :profile="profile" @update="handleProfileUpdate" @reset="resetProfile" />
+
+    <article class="profile-summary">
+      <h3>当前体况摘要</h3>
+      <ul>
+        <li>身高：{{ profile.height }} cm · 体重：{{ profile.weight }} kg</li>
+        <li>
+          BMI：<strong v-if="bmiValue">{{ bmiValue }}</strong>
+          <span v-else>待计算</span>
+        </li>
+        <li>
+          血糖状况：
+          {{
+            profile.diabetesType === 'none'
+              ? '无糖尿病'
+              : profile.diabetesType === 'pre'
+                ? '糖调受损 / 前期'
+                : '2 型糖尿病'
+          }}
+        </li>
+        <li>血压情况：{{ profile.hasHypertension ? '有高血压/波动，需密切监测' : '血压正常范围' }}</li>
+        <li>
+          训练目标：
+          {{
+            profile.goal === 'weight-loss'
+              ? '减脂与体重管理'
+              : profile.goal === 'fitness'
+                ? '提升体能与肌力'
+                : '控糖控压，整体代谢改善'
+          }}
+        </li>
+      </ul>
+      <p class="profile-summary__note">
+        体况调整后，训练与饮食建议会重新生成；若出现异常症状，务必先咨询医生或运动康复师。
+      </p>
+    </article>
+
+    <section class="plan-insights" aria-label="训练总体提示">
+      <article class="plan-insights__card">
+        <h3>训练强度提示</h3>
+        <p>{{ intensityGuide }}</p>
+        <ul>
+          <li v-for="tip in workoutGuidance" :key="tip">{{ tip }}</li>
+        </ul>
+        <p class="plan-insights__footnote">
+          周步数目标：{{ weeklyStepGoal }} 步（平均每日 {{ Math.round(weeklyStepGoal / 7) }} 步）
+        </p>
+      </article>
+    </section>
 
     <WeeklyProgress :summary="summary" />
 
     <section class="layout-grid" aria-label="每日训练计划与进度">
       <DayProgressCard
-        v-for="day in weeklyPlan"
+        v-for="day in workoutDays"
         :key="day.id"
         :day="day"
         :progress="progress[day.id]"
@@ -68,6 +138,8 @@ function completionFor(dayId) {
         @reset="resetDay"
       />
     </section>
+
+    <NutritionPlan :plan="nutritionPlan.days" :meta="nutritionPlan.meta" />
   </main>
 </template>
 
@@ -96,7 +168,7 @@ function completionFor(dayId) {
 .page-header__description {
   margin: 0;
   color: var(--text-muted);
-  max-width: 620px;
+  max-width: 640px;
   line-height: 1.6;
 }
 
@@ -132,6 +204,76 @@ function completionFor(dayId) {
   color: #fff;
   box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2);
   border-color: var(--accent);
+}
+
+.plan-insights {
+  display: grid;
+  gap: 16px;
+}
+
+.plan-insights__card {
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid var(--surface-border);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-subtle);
+  display: grid;
+  gap: 10px;
+}
+
+.plan-insights__card h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.plan-insights__card p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.plan-insights__card ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-primary);
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.plan-insights__footnote {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.profile-summary {
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid var(--surface-border);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-subtle);
+  display: grid;
+  gap: 10px;
+}
+
+.profile-summary h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.profile-summary ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-primary);
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.profile-summary__note {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
 }
 
 @media (min-width: 768px) {

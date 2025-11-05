@@ -1,4 +1,4 @@
-import { computed, reactive, watch } from 'vue'
+import { computed, isRef, reactive, ref, watch } from 'vue'
 
 const STORAGE_KEY = 'body-control/progress/v1'
 
@@ -6,7 +6,7 @@ function createInitialState(plan) {
   const baseState = {}
   plan.forEach((day) => {
     const segmentState = {}
-    day.segments.forEach((segment) => {
+    ;(day.segments || []).forEach((segment) => {
       segmentState[segment.id] = false
     })
 
@@ -34,6 +34,7 @@ function loadPersistedState(plan) {
 
     const parsed = JSON.parse(raw)
 
+    // 保持与最新计划同步，新增的 segment 会补齐，删除的会移除
     plan.forEach((day) => {
       if (!parsed[day.id]) {
         parsed[day.id] = fallback[day.id]
@@ -45,6 +46,15 @@ function loadPersistedState(plan) {
           parsed[day.id].segments[segment.id] = false
         }
       })
+
+      Object.keys(parsed[day.id].segments).forEach((segmentId) => {
+        const stillExists = day.segments.some(
+          (segment) => segment.id === segmentId,
+        )
+        if (!stillExists) {
+          delete parsed[day.id].segments[segmentId]
+        }
+      })
     })
 
     return parsed
@@ -54,12 +64,58 @@ function loadPersistedState(plan) {
   }
 }
 
-export function useProgressTracker(plan) {
-  const state = reactive(loadPersistedState(plan))
+function syncStateWithPlan(state, plan) {
+  const seenDayIds = new Set()
+
+  plan.forEach((day) => {
+    seenDayIds.add(day.id)
+    if (!state[day.id]) {
+      state[day.id] = {
+        segments: {},
+        notes: '',
+      }
+    }
+
+    const segments = state[day.id].segments
+    const requiredSegments = new Set()
+
+    ;(day.segments || []).forEach((segment) => {
+      requiredSegments.add(segment.id)
+      if (typeof segments[segment.id] !== 'boolean') {
+        segments[segment.id] = false
+      }
+    })
+
+    Object.keys(segments).forEach((segmentId) => {
+      if (!requiredSegments.has(segmentId)) {
+        delete segments[segmentId]
+      }
+    })
+  })
+
+  Object.keys(state).forEach((dayId) => {
+    if (!seenDayIds.has(dayId)) {
+      delete state[dayId]
+    }
+  })
+}
+
+export function useProgressTracker(planInput) {
+  const planRef = isRef(planInput) ? planInput : ref(planInput)
+  const initialPlan = Array.isArray(planRef.value) ? planRef.value : []
+  const state = reactive(loadPersistedState(initialPlan))
+
+  syncStateWithPlan(state, initialPlan)
 
   const dayCompletion = computed(() =>
-    plan.map((day) => {
-      const segmentEntries = Object.entries(state[day.id].segments)
+    (planRef.value || []).map((day) => {
+      if (!state[day.id]) {
+        state[day.id] = {
+          segments: {},
+          notes: '',
+        }
+      }
+      const segmentEntries = Object.entries(state[day.id].segments || {})
       const total = segmentEntries.length
       const completed = segmentEntries.filter(([, value]) => value).length
       const completionRate = total === 0 ? 0 : Math.round((completed / total) * 100)
@@ -108,15 +164,26 @@ export function useProgressTracker(plan) {
     }
   })
 
+  watch(
+    planRef,
+    (newPlan) => {
+      syncStateWithPlan(state, Array.isArray(newPlan) ? newPlan : [])
+    },
+    { deep: true },
+  )
+
   function toggleSegment(dayId, segmentId) {
+    if (!state[dayId]) return
     state[dayId].segments[segmentId] = !state[dayId].segments[segmentId]
   }
 
   function updateNotes(dayId, notes) {
+    if (!state[dayId]) return
     state[dayId].notes = notes
   }
 
   function resetDay(dayId) {
+    if (!state[dayId]) return
     Object.keys(state[dayId].segments).forEach((segmentId) => {
       state[dayId].segments[segmentId] = false
     })
