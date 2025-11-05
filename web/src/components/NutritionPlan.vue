@@ -1,7 +1,8 @@
 <script setup>
+import { toRefs } from 'vue'
 import NutritionDayCard from './NutritionDayCard.vue'
 
-defineProps({
+const props = defineProps({
   plan: {
     type: Array,
     required: true,
@@ -10,7 +11,13 @@ defineProps({
     type: Object,
     default: () => ({}),
   },
+  todayId: {
+    type: String,
+    default: '',
+  },
 })
+
+const { plan, meta, todayId } = toRefs(props)
 </script>
 
 <template>
@@ -32,10 +39,10 @@ defineProps({
 
     <div class="nutrition-plan__grid">
       <NutritionDayCard
-        v-for="(day, index) in plan"
+        v-for="day in plan"
         :key="day.id"
         :day="day"
-        :default-expanded="index === 0"
+        :default-expanded="day.id === todayId"
       />
     </div>
   </section>
@@ -73,6 +80,7 @@ defineProps({
 .nutrition-plan__grid {
   display: grid;
   gap: 16px;
+  align-items: start;
 }
 
 @media (min-width: 960px) {

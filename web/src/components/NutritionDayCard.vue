@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 const props = defineProps({
   day: {
@@ -17,6 +17,13 @@ const expanded = ref(props.defaultExpanded)
 function toggle() {
   expanded.value = !expanded.value
 }
+
+watch(
+  () => props.defaultExpanded,
+  (value) => {
+    expanded.value = value
+  },
+)
 </script>
 
 <template>

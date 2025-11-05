@@ -153,7 +153,11 @@ function setActiveTab(tabId) {
       role="tabpanel"
       aria-labelledby="tab-nutrition"
     >
-      <NutritionPlan :plan="nutritionPlan.days" :meta="nutritionPlan.meta" />
+      <NutritionPlan
+        :plan="nutritionPlan.days"
+        :meta="nutritionPlan.meta"
+        :today-id="todayId"
+      />
     </section>
 
     <section

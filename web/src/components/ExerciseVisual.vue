@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 const props = defineProps({
   title: {
@@ -85,6 +85,28 @@ watch(
   },
   { deep: true },
 )
+
+const { uid } =
+  getCurrentInstance() ?? { uid: Math.round((1 + Math.random()) * 1_000_000) }
+const instanceId = `exercise-visual-${uid}`
+const bgGradientId = `${instanceId}-bg`
+const bandGradientId = `${instanceId}-band`
+
+function resolveStroke(stroke) {
+  if (!stroke) return undefined
+  if (stroke === 'url(#bandGradient)') {
+    return `url(#${bandGradientId})`
+  }
+  return stroke
+}
+
+function resolveFill(fill) {
+  if (!fill) return undefined
+  if (fill === 'url(#bgGradient)') {
+    return `url(#${bgGradientId})`
+  }
+  return fill
+}
 </script>
 
 <template>
@@ -95,13 +117,20 @@ watch(
       role="img"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <rect x="0" y="0" width="120" height="120" fill="url(#bgGradient)" rx="14" />
+      <rect
+        x="0"
+        y="0"
+        width="120"
+        height="120"
+        :fill="`url(#${bgGradientId})`"
+        rx="14"
+      />
       <defs>
-        <linearGradient id="bgGradient" x1="0" x2="0" y1="0" y2="1">
+        <linearGradient :id="bgGradientId" x1="0" x2="0" y1="0" y2="1">
           <stop stop-color="#f8fafc" offset="0%" />
           <stop stop-color="#eef2ff" offset="100%" />
         </linearGradient>
-        <linearGradient id="bandGradient" x1="0" x2="1" y1="0" y2="0">
+        <linearGradient :id="bandGradientId" x1="0" x2="1" y1="0" y2="0">
           <stop stop-color="#93c5fd" offset="0%" />
           <stop stop-color="#1d4ed8" offset="100%" />
         </linearGradient>
@@ -122,8 +151,8 @@ watch(
             :width="extra.width"
             :height="extra.height"
             :rx="extra.rx ?? 4"
-            :fill="extra.fill ?? 'rgba(148, 163, 184, 0.25)'"
-            :stroke="extra.stroke ?? 'rgba(148,163,184,0.4)'"
+            :fill="resolveFill(extra.fill) ?? 'rgba(148, 163, 184, 0.25)'"
+            :stroke="resolveStroke(extra.stroke) ?? 'rgba(148,163,184,0.4)'"
             :stroke-width="extra.strokeWidth ?? 1.6"
           />
           <line
@@ -132,14 +161,14 @@ watch(
             :y1="extra.y1"
             :x2="extra.x2"
             :y2="extra.y2"
-            :stroke="extra.stroke ?? '#cbd5f5'"
+            :stroke="resolveStroke(extra.stroke) ?? '#cbd5f5'"
             :stroke-width="extra.strokeWidth ?? 2"
           />
           <polyline
             v-else-if="extra.type === 'polyline'"
             :points="extra.points"
             fill="none"
-            :stroke="extra.stroke ?? 'url(#bandGradient)'"
+            :stroke="resolveStroke(extra.stroke) ?? `url(#${bandGradientId})`"
             :stroke-width="extra.strokeWidth ?? 2.4"
             stroke-linejoin="round"
           />
@@ -148,8 +177,8 @@ watch(
             :cx="extra.cx"
             :cy="extra.cy"
             :r="extra.r"
-            :fill="extra.fill ?? 'rgba(148,163,184,0.15)'"
-            :stroke="extra.stroke ?? 'rgba(148,163,184,0.4)'"
+            :fill="resolveFill(extra.fill) ?? 'rgba(148,163,184,0.15)'"
+            :stroke="resolveStroke(extra.stroke) ?? 'rgba(148,163,184,0.4)'"
             :stroke-width="extra.strokeWidth ?? 1"
           />
           <text
