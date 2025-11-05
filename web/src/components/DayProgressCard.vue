@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import ExerciseVisual from './ExerciseVisual.vue'
 import { exerciseById, exerciseVisuals } from '../data/exerciseLibrary'
 
@@ -23,6 +23,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['toggle', 'updateNotes', 'reset'])
+
+const expanded = ref(props.isToday)
 
 const exerciseDetails = computed(() => {
   if (!props.day.exercises || props.day.exercises.length === 0) {
@@ -57,23 +59,52 @@ function handleNotes(event) {
 function handleReset() {
   emit('reset', props.day.id)
 }
+
+function toggleExpanded() {
+  expanded.value = !expanded.value
+}
+
+watch(
+  () => props.isToday,
+  (value) => {
+    if (value) {
+      expanded.value = true
+    }
+  },
+)
 </script>
 
 <template>
-  <article
-    class="day-card"
-    :class="{ 'day-card--today': isToday }"
-    :aria-label="`${day.label} ${day.focus}`"
-  >
+<article
+  class="day-card"
+  :class="{ 'day-card--today': isToday }"
+  :aria-label="`${day.label} ${day.focus}`"
+>
     <header class="day-card__header">
       <div>
         <p class="day-card__day">{{ day.label }}</p>
         <h2>{{ day.focus }}</h2>
       </div>
-      <span class="day-card__completion">{{ completion.completionRate }}%</span>
+      <div class="day-card__header-actions">
+        <span class="day-card__completion">{{ completion.completionRate }}%</span>
+        <button
+          type="button"
+          class="day-card__toggle"
+          :aria-expanded="expanded"
+          :aria-controls="`day-body-${day.id}`"
+          @click="toggleExpanded"
+        >
+          {{ expanded ? '收起' : '展开' }}
+        </button>
+      </div>
     </header>
 
-    <section class="day-card__body">
+    <section
+      :id="`day-body-${day.id}`"
+      class="day-card__body"
+      :class="{ 'is-collapsed': !expanded }"
+      v-show="expanded"
+    >
       <div class="day-card__section">
         <h3>有氧安排</h3>
         <p>{{ day.cardio }}</p>
@@ -157,7 +188,7 @@ function handleReset() {
       </div>
     </section>
 
-    <section class="day-card__notes">
+    <section class="day-card__notes" v-show="expanded">
       <label>
         <span>今日感受 / 血糖备注</span>
         <textarea
@@ -221,9 +252,42 @@ function handleReset() {
   text-align: center;
 }
 
+.day-card__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.day-card__toggle {
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--surface-border);
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.day-card__toggle:hover {
+  background: var(--surface-border);
+  color: var(--text-primary);
+}
+
 .day-card__body {
   display: grid;
   gap: 14px;
+}
+
+.day-card__body.is-collapsed {
+  display: none;
+}
+
+.day-card__exercise-section {
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid var(--surface-border);
+  background: var(--surface-muted);
 }
 
 .day-card__section h3 {
@@ -245,10 +309,70 @@ function handleReset() {
   line-height: 1.5;
 }
 
-.day-card__exercise-section {
-  padding: 16px;
-  border-radius: 14px;
+.day-card__segment-list ul {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.day-card__segment label {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px;
+  border-radius: 12px;
   border: 1px solid var(--surface-border);
+  background: var(--surface-muted);
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.day-card__segment input {
+  margin-top: 4px;
+  width: 18px;
+  height: 18px;
+}
+
+.day-card__segment-content {
+  display: grid;
+  gap: 4px;
+}
+
+.day-card__segment-label {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.day-card__segment-description {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.day-card__segment label:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-subtle);
+}
+
+.day-card__notes {
+  display: grid;
+  gap: 10px;
+}
+
+.day-card__notes label {
+  display: grid;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.day-card__notes textarea {
+  resize: vertical;
+  min-height: 80px;
+  border-radius: 12px;
+  border: 1px solid var(--surface-border);
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--text-primary);
   background: var(--surface-muted);
 }
 
@@ -329,67 +453,6 @@ function handleReset() {
   margin: 0;
   font-weight: 600;
   color: var(--text-secondary);
-}
-
-.day-card__segment-list ul {
-  list-style: none;
-  padding: 0;
-  display: grid;
-  gap: 10px;
-}
-
-.day-card__segment label {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px solid var(--surface-border);
-  background: var(--surface-muted);
-}
-
-.day-card__segment input {
-  margin-top: 4px;
-  width: 18px;
-  height: 18px;
-}
-
-.day-card__segment-content {
-  display: grid;
-  gap: 4px;
-}
-
-.day-card__segment-label {
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.day-card__segment-description {
-  font-size: 0.9rem;
-  color: var(--text-muted);
-}
-
-.day-card__notes {
-  display: grid;
-  gap: 10px;
-}
-
-.day-card__notes label {
-  display: grid;
-  gap: 6px;
-  color: var(--text-secondary);
-  font-weight: 600;
-}
-
-.day-card__notes textarea {
-  resize: vertical;
-  min-height: 80px;
-  border-radius: 12px;
-  border: 1px solid var(--surface-border);
-  padding: 10px 12px;
-  font: inherit;
-  color: var(--text-primary);
-  background: var(--surface-muted);
 }
 
 .day-card__reset {
