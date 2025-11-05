@@ -291,11 +291,57 @@ const baseWorkoutPlan = [
   },
 ]
 
+const englishWorkoutDay = {
+  mon: {
+    label: 'Monday',
+    focus: 'Low-impact cardio + full-body activation',
+    cardio: 'Indoor brisk walk or stepper for 12-15 minutes, keep RPE 4-5.',
+  },
+  tue: {
+    label: 'Tuesday',
+    focus: 'Joint mobility + core stability',
+    cardio: 'Mini march or light dance for 8 minutes at an easy pace.',
+  },
+  wed: {
+    label: 'Wednesday',
+    focus: 'Active recovery and glucose management',
+    cardio: 'Take a comfortable walk for 20-30 minutes within 30 minutes after meals.',
+  },
+  thu: {
+    label: 'Thursday',
+    focus: 'Interval cardio + lower-body strength',
+    cardio: '1-minute high-knee or stair intervals ×6 with 1-minute easy walk recoveries.',
+  },
+  fri: {
+    label: 'Friday',
+    focus: 'Upper-body endurance + core',
+    cardio: 'Indoor brisk walk for 10 minutes at a steady pace.',
+  },
+  sat: {
+    label: 'Saturday',
+    focus: 'Mixed circuit + cardio endurance',
+    cardio: 'Alternate 3 minutes brisk walk with 1 minute stepping for a total of 20 minutes.',
+  },
+  sun: {
+    label: 'Sunday',
+    focus: 'Rest and recovery',
+    cardio: 'Choose an easy walk or tai chi for about 20 minutes.',
+  },
+}
+
 const activityIntensityMessages = {
-  gentle: '优先维持安全节奏，动作 2 组为主，重点建立规律。',
-  moderate: '保持 RPE 4-5，部分动作可挑战到第 3 组，关注动作质量。',
-  progressive:
-    '在确保血糖与血压稳定的前提下，可增加到 3 组或延长有氧时长 5-10 分钟。',
+  zh: {
+    gentle: '优先维持安全节奏，动作 2 组为主，重点建立规律。',
+    moderate: '保持 RPE 4-5，部分动作可挑战到第 3 组，关注动作质量。',
+    progressive:
+      '在确保血糖与血压稳定的前提下，可增加到 3 组或延长有氧时长 5-10 分钟。',
+  },
+  en: {
+    gentle: 'Keep the pace comfortable, complete mainly 2 sets and build consistency first.',
+    moderate: 'Maintain RPE 4-5; consider a third set when form is solid.',
+    progressive:
+      'When glucose and blood pressure stay stable, add a third set or extend cardio by 5-10 minutes.',
+  },
 }
 
 function clonePlan() {
@@ -354,18 +400,28 @@ function adjustPrescriptionForIntensity(text, activityLevel) {
   return result
 }
 
-function adjustCardioText(baseText, profile) {
+function adjustCardioText(baseText, profile, locale) {
   let text = baseText
   if (profile.hasHypertension) {
-    text = `${text}（关注血压变化，保持 RPE 4-5，心率不超过 135 次/分。）`
+    text =
+      locale === 'en'
+        ? `${text} (Monitor blood pressure, keep RPE 4-5 and heart rate below 135 bpm.)`
+        : `${text}（关注血压变化，保持 RPE 4-5，心率不超过 135 次/分。）`
   }
   if (profile.diabetesType !== 'none') {
-    text = `${text} 运动前后测量血糖，留意低血糖征兆。`
+    text =
+      locale === 'en'
+        ? `${text} Check glucose before and after activity and watch for hypoglycemia.`
+        : `${text} 运动前后测量血糖，留意低血糖征兆。`
   }
   if (profile.activityLevel === 'progressive') {
-    text = text.replace('12-15 分钟', '15-18 分钟').replace('20 分钟', '24 分钟')
+    text = locale === 'en'
+      ? text.replace('12-15 minutes', '15-18 minutes').replace('20 minutes', '24 minutes')
+      : text.replace('12-15 分钟', '15-18 分钟').replace('20 分钟', '24 分钟')
   } else if (profile.activityLevel === 'gentle') {
-    text = text.replace('12-15 分钟', '10-12 分钟').replace('20 分钟', '18 分钟')
+    text = locale === 'en'
+      ? text.replace('12-15 minutes', '10-12 minutes').replace('20 minutes', '18 minutes')
+      : text.replace('12-15 分钟', '10-12 分钟').replace('20 分钟', '18 分钟')
   }
   return text
 }
@@ -389,38 +445,64 @@ function adjustStrengthList(list, profile) {
   return updated
 }
 
-function adjustReminders(baseReminders, profile) {
+function adjustReminders(baseReminders, profile, locale) {
   const reminders = new Set(baseReminders)
 
   if (profile.hasHypertension) {
-    reminders.add('训练前后测量血压，必要时延长休息时间。')
+    reminders.add(
+      locale === 'en'
+        ? 'Check blood pressure before and after training, and extend rest if needed.'
+        : '训练前后测量血压，必要时延长休息时间。',
+    )
   }
 
   if (profile.diabetesType !== 'none') {
-    reminders.add('随身携带快速补糖食物，预防低血糖。')
+    reminders.add(
+      locale === 'en'
+        ? 'Carry fast-acting carbs to prevent hypoglycemia.'
+        : '随身携带快速补糖食物，预防低血糖。',
+    )
   }
 
   if (profile.goal === 'weight-loss') {
-    reminders.add('每天额外累积 6-8 千步轻松步行，控制夜间加餐。')
+    reminders.add(
+      locale === 'en'
+        ? 'Aim for an extra 6-8k gentle steps daily and avoid late-night snacks.'
+        : '每天额外累积 6-8 千步轻松步行，控制夜间加餐。',
+    )
   }
 
   if (profile.activityLevel === 'gentle') {
-    reminders.add('以 2 组为主，感觉吃力时优先保证动作质量。')
+    reminders.add(
+      locale === 'en'
+        ? 'Stay with two sets and prioritise form if you feel fatigued.'
+        : '以 2 组为主，感觉吃力时优先保证动作质量。',
+    )
   } else if (profile.activityLevel === 'progressive') {
-    reminders.add('若体感良好，可增加 1 组或提升阻力。')
+    reminders.add(
+      locale === 'en'
+        ? 'If the sets feel easy, add one more set or increase resistance.'
+        : '若体感良好，可增加 1 组或提升阻力。',
+    )
   }
 
   return Array.from(reminders)
 }
 
-function adjustSegments(baseSegments, profile) {
+function adjustSegments(baseSegments, profile, locale) {
   return baseSegments.map((segment) => {
     const updated = { ...segment }
     if (segment.id === 'interval' && profile.hasHypertension) {
-      updated.description = `${segment.description} 间歇时保持原地踏步或坐下深呼吸 1 分钟。`
+      updated.description =
+        locale === 'en'
+          ? `${segment.description} During rests, march in place or sit for deep breathing for one minute.`
+          : `${segment.description} 间歇时保持原地踏步或坐下深呼吸 1 分钟。`
     }
     if (segment.id === 'cardio' && profile.goal === 'weight-loss') {
-      updated.description = `${segment.description} 尝试在周末延长 5 分钟以提高能量消耗。`
+      updated.description =
+        locale === 'en'
+          ? `${segment.description} Add 5 minutes on weekends to boost energy expenditure.`
+          : `${segment.description} 尝试在周末延长 5 分钟以提高能量消耗。`
     }
     return updated
   })
@@ -432,26 +514,46 @@ function calculateBMI(heightCm, weightKg) {
   return +(weightKg / (heightM * heightM)).toFixed(1)
 }
 
-function createGuidance(profile, bmi) {
+function createGuidance(profile, bmi, locale) {
   const messages = []
+  const lang = locale === 'en' ? 'en' : 'zh'
   if (profile.hasHypertension) {
-    messages.push('重点关注血压波动，避免憋气或快速变换体位。')
+    messages.push(
+      locale === 'en'
+        ? 'Watch blood pressure fluctuations and avoid breath-holding or sudden posture shifts.'
+        : '重点关注血压波动，避免憋气或快速变换体位。',
+    )
   }
   if (profile.diabetesType !== 'none') {
-    messages.push('每次运动前后记录血糖，训练背包放置补糖食物。')
+    messages.push(
+      locale === 'en'
+        ? 'Record glucose before and after sessions and keep quick carbs in your training bag.'
+        : '每次运动前后记录血糖，训练背包放置补糖食物。',
+    )
   }
   if (bmi && bmi >= 28) {
-    messages.push('以低冲击训练为主，保证步频和核心稳定，逐步减轻关节压力。')
+    messages.push(
+      locale === 'en'
+        ? 'Focus on low-impact work, keep cadence steady, stabilise the core, and ease joint load gradually.'
+        : '以低冲击训练为主，保证步频和核心稳定，逐步减轻关节压力。',
+    )
   } else if (profile.goal === 'fitness') {
-    messages.push('可在第 3-4 周加入轻重量器械或延长有氧时间。')
+    messages.push(
+      locale === 'en'
+        ? 'By weeks 3-4 you may add light resistance tools or extend cardio duration.'
+        : '可在第 3-4 周加入轻重量器械或延长有氧时间。',
+    )
   }
 
-  messages.push(activityIntensityMessages[profile.activityLevel] || activityIntensityMessages.moderate)
+  const intensityMessage =
+    activityIntensityMessages[lang][profile.activityLevel] ||
+    activityIntensityMessages[lang].moderate
+  messages.push(intensityMessage)
 
   return messages
 }
 
-export function createWorkoutPlan(profile) {
+export function createWorkoutPlan(profile, locale = 'zh') {
   const workingProfile = {
     height: profile.height || 177,
     weight: profile.weight || 109,
@@ -464,10 +566,17 @@ export function createWorkoutPlan(profile) {
   const bmi = calculateBMI(workingProfile.height, workingProfile.weight)
   const days = clonePlan().map((day) => {
     const adjusted = { ...day }
-    adjusted.cardio = adjustCardioText(day.cardio, workingProfile)
+    const mapping = locale === 'en' ? englishWorkoutDay[day.id] : null
+    if (mapping) {
+      adjusted.label = mapping.label
+      adjusted.focus = mapping.focus
+    }
+
+    const cardioBase = mapping?.cardio ?? day.cardio
+    adjusted.cardio = adjustCardioText(cardioBase, workingProfile, locale)
     adjusted.strength = adjustStrengthList(day.strength, workingProfile)
-    adjusted.reminders = adjustReminders(day.reminders, workingProfile)
-    adjusted.segments = adjustSegments(day.segments, workingProfile)
+    adjusted.reminders = adjustReminders(day.reminders, workingProfile, locale)
+    adjusted.segments = adjustSegments(day.segments, workingProfile, locale)
     adjusted.exercises = day.exercises?.map((exercise) => ({
       ...exercise,
       prescription: adjustPrescriptionForIntensity(exercise.prescription, workingProfile.activityLevel),
@@ -484,8 +593,12 @@ export function createWorkoutPlan(profile) {
 
   const intensityGuide =
     workingProfile.hasHypertension || workingProfile.diabetesType !== 'none'
-      ? '主观用力感保持在 4-6，心率控制在 110-135 次/分。'
-      : '可在保证动作标准的前提下，将 RPE 提升至 6-7。'
+      ? locale === 'en'
+        ? 'Keep RPE between 4 and 6; maintain heart rate within 110-135 bpm.'
+        : '主观用力感保持在 4-6，心率控制在 110-135 次/分。'
+      : locale === 'en'
+        ? 'When movements stay solid, you may lift RPE to 6-7.'
+        : '可在保证动作标准的前提下，将 RPE 提升至 6-7。'
 
   return {
     days,
@@ -493,7 +606,7 @@ export function createWorkoutPlan(profile) {
       bmi,
       weeklyStepGoal,
       intensityGuide,
-      guidance: createGuidance(workingProfile, bmi),
+      guidance: createGuidance(workingProfile, bmi, locale),
     },
   }
 }

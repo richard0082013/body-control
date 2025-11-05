@@ -176,11 +176,52 @@ const baseNutritionPlan = [
   },
 ]
 
+const englishDayContent = {
+  mon: {
+    label: 'Monday',
+    theme: 'Baseline glucose control',
+    focus: (calorieTarget) => `Around ${calorieTarget} kcal · Balanced carbs and protein`,
+  },
+  tue: {
+    label: 'Tuesday',
+    theme: 'Extra fibre focus',
+    focus: 'Boost satiety and smooth glucose curves',
+  },
+  wed: {
+    label: 'Wednesday',
+    theme: 'Gentle lower-carb day',
+    focus: 'Reduce starch portions, increase vegetables',
+  },
+  thu: {
+    label: 'Thursday',
+    theme: 'Healthy fat support',
+    focus: 'Stabilise glucose & pressure with omega-rich foods',
+  },
+  fri: {
+    label: 'Friday',
+    theme: 'Brain-power workday',
+    focus: 'Steady fuel for focus and glucose management',
+  },
+  sat: {
+    label: 'Saturday',
+    theme: 'Training-day fuel',
+    focus: 'Add protein to support recovery',
+  },
+  sun: {
+    label: 'Sunday',
+    theme: 'Light recovery & sodium control',
+    focus: 'Low-salt, gut-friendly meals',
+  },
+}
+
 function cloneNutritionPlan() {
   return baseNutritionPlan.map((day) => JSON.parse(JSON.stringify(day)))
 }
 
-function adjustEnergyTarget(baseFocus, calorieTarget) {
+function adjustEnergyTarget(baseFocus, calorieTarget, locale) {
+  if (locale === 'en') {
+    return baseFocus.replace(/\d{3,4}\s*kcal/, `${calorieTarget} kcal`)
+  }
   return baseFocus.replace(/\d{3,4}\s*kcal/, `${calorieTarget} kcal`)
 }
 
@@ -195,22 +236,34 @@ function determineCalorieTarget(profile) {
   return profile.activityLevel === 'gentle' ? 1750 : base
 }
 
-function applyConditionNotes(day, profile) {
+function applyConditionNotes(day, profile, locale) {
   const notes = new Set(day.notes || [])
   if (profile.diabetesType !== 'none') {
-    notes.add('餐后 2 小时检测血糖，记录不同主食对血糖的影响。')
+    notes.add(
+      locale === 'en'
+        ? 'Check post-meal glucose at 2 hours and note how different staples affect it.'
+        : '餐后 2 小时检测血糖，记录不同主食对血糖的影响。',
+    )
   }
   if (profile.hasHypertension) {
-    notes.add('烹调时控制盐与酱料，用香草与柠檬代替味精、鸡精。')
+    notes.add(
+      locale === 'en'
+        ? 'Limit salt and sauces; flavour dishes with herbs and citrus instead of MSG.'
+        : '烹调时控制盐与酱料，用香草与柠檬代替味精、鸡精。',
+    )
   }
   if (profile.goal === 'weight-loss') {
-    notes.add('夜间若饥饿，优先选择温水或高纤蔬菜而非碳水。')
+    notes.add(
+      locale === 'en'
+        ? 'If hungry at night, choose warm water or high-fibre vegetables before carbs.'
+        : '夜间若饥饿，优先选择温水或高纤蔬菜而非碳水。',
+    )
   }
   day.notes = Array.from(notes)
   return day
 }
 
-export function createNutritionPlan(profile) {
+export function createNutritionPlan(profile, locale = 'zh') {
   const workingProfile = {
     goal: profile.goal || 'metabolic',
     activityLevel: profile.activityLevel || 'gentle',
@@ -222,19 +275,46 @@ export function createNutritionPlan(profile) {
 
   const days = cloneNutritionPlan().map((day) => {
     const adjusted = { ...day }
-    adjusted.focus = adjustEnergyTarget(day.focus, calorieTarget)
+    adjusted.focus = adjustEnergyTarget(day.focus, calorieTarget, locale)
     if (workingProfile.goal === 'fitness') {
-      adjusted.snacks = [...(day.snacks || []), '运动后 30 分钟内补充 10-15g 蛋白质']
+      adjusted.snacks = [
+        ...(day.snacks || []),
+        locale === 'en'
+          ? 'Have 10-15g of protein within 30 minutes after training.'
+          : '运动后 30 分钟内补充 10-15g 蛋白质',
+      ]
     }
     if (workingProfile.goal === 'weight-loss' && day.id === 'wed') {
-      adjusted.snacks = ['温水或无糖茶', '切片黄瓜、芹菜棒']
+      adjusted.snacks =
+        locale === 'en'
+          ? ['Warm water or unsweetened tea', 'Sliced cucumber or celery sticks']
+          : ['温水或无糖茶', '切片黄瓜、芹菜棒']
     }
     if (workingProfile.diabetesType !== 'none' && day.id === 'fri') {
       adjusted.snacks = (day.snacks || []).map((snack) =>
-        snack.includes('蓝莓') ? snack.replace('蓝莓 40g', '蓝莓 30g') : snack,
+        locale === 'en'
+          ? snack.includes('blueberries')
+            ? snack.replace('40g', '30g')
+            : snack
+          : snack.includes('蓝莓')
+            ? snack.replace('蓝莓 40g', '蓝莓 30g')
+            : snack,
       )
     }
-    applyConditionNotes(adjusted, workingProfile)
+    applyConditionNotes(adjusted, workingProfile, locale)
+
+    if (locale === 'en') {
+      const mapping = englishDayContent[day.id]
+      if (mapping) {
+        adjusted.label = mapping.label
+        adjusted.theme = mapping.theme
+        adjusted.focus =
+          typeof mapping.focus === 'function'
+            ? mapping.focus(calorieTarget)
+            : mapping.focus
+      }
+    }
+
     return adjusted
   })
 
@@ -242,11 +322,16 @@ export function createNutritionPlan(profile) {
     days,
     meta: {
       calorieTarget,
-      hydration: '每日水分 2000ml 左右，可选择无糖茶替换部分饮用水。',
-      fibreGoal: '每日膳食纤维 ≥30g，保证至少 500g 蔬菜摄入。',
+      hydration:
+        locale === 'en'
+          ? 'About 2000 ml of water daily; unsweetened tea can replace some servings.'
+          : '每日水分 2000ml 左右，可选择无糖茶替换部分饮用水。',
+      fibreGoal:
+        locale === 'en'
+          ? 'Aim for ≥30g of fibre per day with at least 500g of vegetables.'
+          : '每日膳食纤维 ≥30g，保证至少 500g 蔬菜摄入。',
     },
   }
 }
 
 export { baseNutritionPlan }
-

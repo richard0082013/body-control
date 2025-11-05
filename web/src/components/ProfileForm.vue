@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { useI18n } from '../composables/useI18n'
 
 const props = defineProps({
   profile: {
@@ -9,6 +10,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update', 'reset'])
+const { t } = useI18n()
 
 const bmi = computed(() => {
   const height = Number(props.profile.height)
@@ -18,13 +20,31 @@ const bmi = computed(() => {
   return +(weight / (heightM * heightM)).toFixed(1)
 })
 
-const bmiLevel = computed(() => {
-  if (!bmi.value) return ''
-  if (bmi.value >= 30) return '肥胖 III 级（需严控能量）'
-  if (bmi.value >= 28) return '肥胖 II 级（加强控糖减脂）'
-  if (bmi.value >= 24) return '超重（配合运动减脂）'
-  return '正常范围'
+const bmiLevelKey = computed(() => {
+  if (!bmi.value) return null
+  if (bmi.value >= 30) return 'obese3'
+  if (bmi.value >= 28) return 'obese2'
+  if (bmi.value >= 24) return 'overweight'
+  return 'normal'
 })
+
+const diabetesOptions = computed(() => [
+  { value: 'none', label: t('profileForm.diabetesOptions.none') },
+  { value: 'pre', label: t('profileForm.diabetesOptions.pre') },
+  { value: 'type2', label: t('profileForm.diabetesOptions.type2') },
+])
+
+const activityOptions = computed(() => [
+  { value: 'gentle', label: t('profileForm.activityOptions.gentle') },
+  { value: 'moderate', label: t('profileForm.activityOptions.moderate') },
+  { value: 'progressive', label: t('profileForm.activityOptions.progressive') },
+])
+
+const goalOptions = computed(() => [
+  { value: 'metabolic', label: t('profileForm.goalOptions.metabolic') },
+  { value: 'weight-loss', label: t('profileForm.goalOptions.weight-loss') },
+  { value: 'fitness', label: t('profileForm.goalOptions.fitness') },
+])
 
 function updateField(field, value) {
   emit('update', { [field]: value })
@@ -49,15 +69,15 @@ function handleCheckbox(field, event) {
 <template>
   <section class="profile-form">
     <header class="profile-form__header">
-      <h2>身体情况与目标</h2>
+      <h2>{{ t('profileForm.title') }}</h2>
       <button type="button" class="profile-form__reset" @click="emit('reset')">
-        恢复默认
+        {{ t('profileForm.reset') }}
       </button>
     </header>
 
     <div class="profile-form__grid">
       <label class="profile-form__field">
-        <span>身高 (cm)</span>
+        <span>{{ t('profileForm.height') }}</span>
         <input
           type="number"
           min="120"
@@ -69,7 +89,7 @@ function handleCheckbox(field, event) {
       </label>
 
       <label class="profile-form__field">
-        <span>体重 (kg)</span>
+        <span>{{ t('profileForm.weight') }}</span>
         <input
           type="number"
           min="40"
@@ -81,11 +101,11 @@ function handleCheckbox(field, event) {
       </label>
 
       <label class="profile-form__field">
-        <span>血糖情况</span>
+        <span>{{ t('profileForm.diabetes') }}</span>
         <select :value="profile.diabetesType" @change="handleSelect('diabetesType', $event)">
-          <option value="none">无糖尿病</option>
-          <option value="pre">糖调受损 / 前期</option>
-          <option value="type2">2 型糖尿病</option>
+          <option v-for="option in diabetesOptions" :key="option.value" :value="option.value">
+            {{ option.label }}
+          </option>
         </select>
       </label>
 
@@ -95,7 +115,7 @@ function handleCheckbox(field, event) {
           :checked="profile.hasHypertension"
           @change="handleCheckbox('hasHypertension', $event)"
         />
-        <span>存在高血压或血压波动</span>
+        <span>{{ t('profileForm.hypertension') }}</span>
       </label>
 
       <label class="profile-form__field profile-form__checkbox">
@@ -104,38 +124,38 @@ function handleCheckbox(field, event) {
           :checked="profile.takesMedication"
           @change="handleCheckbox('takesMedication', $event)"
         />
-        <span>正在按医嘱服药</span>
+        <span>{{ t('profileForm.medication') }}</span>
       </label>
 
       <label class="profile-form__field">
-        <span>当前运动习惯</span>
+        <span>{{ t('profileForm.activity') }}</span>
         <select :value="profile.activityLevel" @change="handleSelect('activityLevel', $event)">
-          <option value="gentle">温和（刚起步/恢复期）</option>
-          <option value="moderate">适中（每周 3-4 次）</option>
-          <option value="progressive">进阶（每周 ≥5 次）</option>
+          <option v-for="option in activityOptions" :key="option.value" :value="option.value">
+            {{ option.label }}
+          </option>
         </select>
       </label>
 
       <label class="profile-form__field">
-        <span>主要目标</span>
+        <span>{{ t('profileForm.goal') }}</span>
         <select :value="profile.goal" @change="handleSelect('goal', $event)">
-          <option value="metabolic">控糖控压，整体代谢改善</option>
-          <option value="weight-loss">减脂与体重管理</option>
-          <option value="fitness">提升体能与肌力</option>
+          <option v-for="option in goalOptions" :key="option.value" :value="option.value">
+            {{ option.label }}
+          </option>
         </select>
       </label>
     </div>
 
     <aside class="profile-form__insight" aria-live="polite">
       <p>
-        当前 BMI：
+        {{ t('profileForm.bmi.label') }}
         <strong v-if="bmi">{{ bmi }}</strong>
-        <span v-else>未计算</span>
+        <span v-else>{{ t('profileForm.bmi.pending') }}</span>
       </p>
-      <p v-if="bmi">{{ bmiLevel }}</p>
-      <p class="profile-form__hint">
-        调整上述信息将自动重新生成训练与饮食建议，所有更改会在本地保存。
+      <p v-if="bmiLevelKey">
+        {{ t(`profileForm.bmi.level.${bmiLevelKey}`) }}
       </p>
+      <p class="profile-form__hint">{{ t('profileForm.hint') }}</p>
     </aside>
   </section>
 </template>

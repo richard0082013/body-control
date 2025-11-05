@@ -1,5 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue'
+import { useI18n } from '../composables/useI18n'
 
 const props = defineProps({
   day: {
@@ -13,6 +14,7 @@ const props = defineProps({
 })
 
 const expanded = ref(props.defaultExpanded)
+const { t } = useI18n()
 
 function toggle() {
   expanded.value = !expanded.value
@@ -42,7 +44,7 @@ watch(
           :aria-controls="`nutrition-body-${day.id}`"
           @click="toggle"
         >
-          {{ expanded ? '收起' : '展开' }}
+          {{ expanded ? t('nutritionPlan.toggle.collapse') : t('nutritionPlan.toggle.expand') }}
         </button>
       </div>
     </header>
@@ -54,7 +56,7 @@ watch(
     >
       <div class="nutrition-card__meals">
         <section v-for="(meal, key) in day.meals" :key="key">
-          <h4>{{ meal.title }}</h4>
+          <h4>{{ t(`nutritionCard.meals.${key}`) }}</h4>
           <ul>
             <li v-for="item in meal.items" :key="item">{{ item }}</li>
           </ul>
@@ -63,14 +65,14 @@ watch(
       </div>
 
       <section v-if="day.snacks?.length" class="nutrition-card__snacks">
-        <h4>加餐建议</h4>
+        <h4>{{ t('nutritionPlan.snacks') }}</h4>
         <ul>
           <li v-for="item in day.snacks" :key="item">{{ item }}</li>
         </ul>
       </section>
 
       <section v-if="day.notes?.length" class="nutrition-card__notes">
-        <h4>提醒</h4>
+        <h4>{{ t('nutritionPlan.notes') }}</h4>
         <ul>
           <li v-for="note in day.notes" :key="note">{{ note }}</li>
         </ul>
