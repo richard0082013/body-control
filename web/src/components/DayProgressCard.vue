@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import ExerciseVisual from './ExerciseVisual.vue'
 import { exerciseById, exerciseVisuals } from '../data/exerciseLibrary'
+import { useI18n } from '../composables/useI18n'
 
 const props = defineProps({
   day: {
@@ -23,6 +24,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['toggle', 'updateNotes', 'reset'])
+const { t } = useI18n()
 
 const expanded = ref(props.isToday)
 
@@ -94,7 +96,7 @@ watch(
           :aria-controls="`day-body-${day.id}`"
           @click="toggleExpanded"
         >
-          {{ expanded ? '收起' : '展开' }}
+          {{ expanded ? t('dayCard.toggle.collapse') : t('dayCard.toggle.expand') }}
         </button>
       </div>
     </header>
@@ -106,12 +108,12 @@ watch(
       v-show="expanded"
     >
       <div class="day-card__section">
-        <h3>有氧安排</h3>
+        <h3>{{ t('dayCard.cardio') }}</h3>
         <p>{{ day.cardio }}</p>
       </div>
 
       <div class="day-card__section">
-        <h3>动作重点</h3>
+        <h3>{{ t('dayCard.focus') }}</h3>
         <ul>
           <li v-for="item in day.strength" :key="item">{{ item }}</li>
         </ul>
@@ -121,7 +123,7 @@ watch(
         v-if="exerciseDetails.length"
         class="day-card__section day-card__exercise-section"
       >
-        <h3>图文示范</h3>
+        <h3>{{ t('dayCard.demo') }}</h3>
         <div class="exercise-grid">
           <article
             v-for="exercise in exerciseDetails"
@@ -148,7 +150,7 @@ watch(
               <li v-for="step in exercise.steps" :key="step">{{ step }}</li>
             </ul>
             <div class="exercise-card__tips">
-              <p>小提示</p>
+              <p>{{ t('dayCard.tips') }}</p>
               <ul>
                 <li v-for="tip in exercise.tips" :key="tip">{{ tip }}</li>
               </ul>
@@ -158,7 +160,7 @@ watch(
       </div>
 
       <div class="day-card__section day-card__segment-list">
-        <h3>今日检查项</h3>
+        <h3>{{ t('dayCard.checklist') }}</h3>
         <ul>
           <li
             v-for="segment in day.segments"
@@ -181,7 +183,7 @@ watch(
       </div>
 
       <div v-if="day.reminders?.length" class="day-card__section">
-        <h3>提醒</h3>
+        <h3>{{ t('dayCard.reminders') }}</h3>
         <ul>
           <li v-for="tip in day.reminders" :key="tip">{{ tip }}</li>
         </ul>
@@ -190,16 +192,16 @@ watch(
 
     <section class="day-card__notes" v-show="expanded">
       <label>
-        <span>今日感受 / 血糖备注</span>
+        <span>{{ t('dayCard.notesLabel') }}</span>
         <textarea
           rows="3"
           :value="progress.notes"
-          placeholder="记录训练时长、血糖变化、疲劳感等..."
+          :placeholder="t('dayCard.notesLabel')"
           @input="handleNotes"
         />
       </label>
       <button type="button" class="day-card__reset" @click="handleReset">
-        重置本日记录
+        {{ t('dayCard.reset') }}
       </button>
     </section>
   </article>

@@ -8,11 +8,13 @@ import { createWorkoutPlan } from './data/workoutPlan'
 import { createNutritionPlan } from './data/nutritionPlan'
 import { useProgressTracker } from './composables/useProgressTracker'
 import { useUserProfile } from './composables/useUserProfile'
+import { useI18n } from './composables/useI18n'
 
 const { profile, updateProfile, resetProfile } = useUserProfile()
+const { t, locale, setLocale, availableLocales } = useI18n()
 
-const workoutPlan = computed(() => createWorkoutPlan(profile))
-const nutritionPlan = computed(() => createNutritionPlan(profile))
+const workoutPlan = computed(() => createWorkoutPlan(profile, locale.value))
+const nutritionPlan = computed(() => createNutritionPlan(profile, locale.value))
 
 const workoutDays = computed(() => workoutPlan.value.days || [])
 
@@ -38,18 +40,18 @@ const todayId = weekOrder[new Date().getDay()]
 
 const todayLabel = computed(() => {
   const today = workoutDays.value.find((day) => day.id === todayId)
-  return today ? today.label : '今天'
+  return today ? today.label : ''
 })
 
 const workoutGuidance = computed(() => workoutPlan.value.meta.guidance || [])
 const intensityGuide = computed(() => workoutPlan.value.meta.intensityGuide)
 const weeklyStepGoal = computed(() => workoutPlan.value.meta.weeklyStepGoal)
 
-const tabs = [
-  { id: 'training', label: '训练计划' },
-  { id: 'nutrition', label: '饮食计划' },
-  { id: 'profile', label: '身体信息' },
-]
+const localizedTabs = computed(() => [
+  { id: 'training', label: t('tabs.training') },
+  { id: 'nutrition', label: t('tabs.nutrition') },
+  { id: 'profile', label: t('tabs.profile') },
+])
 
 const activeTab = ref('training')
 
@@ -68,34 +70,85 @@ function handleProfileUpdate(partial) {
 function setActiveTab(tabId) {
   activeTab.value = tabId
 }
+
+const profileSummaryItems = computed(() => {
+  const items = []
+  items.push(
+    t('app.profileSummaryItems.heightWeight', {
+      height: profile.height,
+      weight: profile.weight,
+    }),
+  )
+
+  const bmiValue = workoutPlan.value.meta.bmi
+  items.push(
+    bmiValue
+      ? t('app.profileSummaryItems.bmi', { value: bmiValue })
+      : t('app.profileSummaryItems.bmiPending'),
+  )
+
+  const diabetesKey =
+    profile.diabetesType === 'pre'
+      ? 'pre'
+      : profile.diabetesType === 'type2'
+        ? 'type2'
+        : 'none'
+  items.push(t(`app.profileSummaryItems.diabetes.${diabetesKey}`))
+
+  const hypertensionKey = profile.hasHypertension ? 'true' : 'false'
+  items.push(t(`app.profileSummaryItems.hypertension.${hypertensionKey}`))
+
+  items.push(t(`app.profileSummaryItems.goal.${profile.goal}`))
+
+  return items
+})
+
+function localeLabel(option) {
+  return t(`app.localeNames.${option.value}`)
+}
 </script>
 
 <template>
   <main>
     <header class="page-header">
       <div class="page-header__titles">
-        <p class="page-header__eyebrow">身体管理 · 每周循环</p>
-        <h1>个性化训练与饮食助手</h1>
-        <p class="page-header__description">
-          根据当前身体情况生成 7 天训练与三餐计划。调整健康信息会自动更新建议，并保存在本地。
-        </p>
+        <p class="page-header__eyebrow">{{ t('app.eyebrow') }}</p>
+        <h1>{{ t('app.title') }}</h1>
+        <p class="page-header__description">{{ t('app.description') }}</p>
       </div>
       <div class="page-header__actions">
-        <p class="page-header__today">今天是：<strong>{{ todayLabel }}</strong></p>
+        <div class="locale-toggle">
+          <span class="locale-toggle__label">{{ t('app.localeLabel') }}</span>
+          <div class="locale-toggle__buttons" role="group" :aria-label="t('app.localeLabel')">
+            <button
+              v-for="option in availableLocales"
+              :key="option.value"
+              type="button"
+              :class="['locale-toggle__button', { 'is-active': locale === option.value }]"
+              :aria-pressed="locale === option.value"
+              @click="setLocale(option.value)"
+            >
+              {{ localeLabel(option) }}
+            </button>
+          </div>
+        </div>
+        <p class="page-header__today">
+          {{ t('app.today') }}<strong>{{ todayLabel }}</strong>
+        </p>
         <button
           v-if="activeTab === 'training'"
           type="button"
           class="reset-all"
           @click="resetAll"
         >
-          清空本周训练记录
+          {{ t('app.clearProgress') }}
         </button>
       </div>
     </header>
 
-    <nav class="tab-bar" role="tablist" aria-label="内容分类">
+    <nav class="tab-bar" role="tablist" :aria-label="t('app.title')">
       <button
-        v-for="tab in tabs"
+        v-for="tab in localizedTabs"
         :id="`tab-${tab.id}`"
         :key="tab.id"
         :class="['tab-bar__button', { 'is-active': activeTab === tab.id }]"
@@ -116,22 +169,27 @@ function setActiveTab(tabId) {
       role="tabpanel"
       aria-labelledby="tab-training"
     >
-      <section class="plan-insights" aria-label="训练总体提示">
+      <section class="plan-insights" :aria-label="t('app.planInsightsTitle')">
         <article class="plan-insights__card">
-          <h3>训练强度提示</h3>
+          <h3>{{ t('app.planInsightsTitle') }}</h3>
           <p>{{ intensityGuide }}</p>
           <ul>
             <li v-for="tip in workoutGuidance" :key="tip">{{ tip }}</li>
           </ul>
           <p class="plan-insights__footnote">
-            周步数目标：{{ weeklyStepGoal }} 步（平均每日 {{ Math.round(weeklyStepGoal / 7) }} 步）
+            {{
+              t('app.planInsightsFootnote', {
+                steps: weeklyStepGoal,
+                daily: Math.round(weeklyStepGoal / 7),
+              })
+            }}
           </p>
         </article>
       </section>
 
       <WeeklyProgress :summary="summary" />
 
-      <section class="layout-grid" aria-label="每日训练计划与进度">
+      <section class="layout-grid" :aria-label="t('tabs.training')">
         <DayProgressCard
           v-for="day in workoutDays"
           :key="day.id"
@@ -169,16 +227,11 @@ function setActiveTab(tabId) {
     >
       <ProfileForm :profile="profile" @update="handleProfileUpdate" @reset="resetProfile" />
       <article class="profile-summary">
-        <h3>当前体况摘要</h3>
+        <h3>{{ t('app.profileSummaryTitle') }}</h3>
         <ul>
-          <li>身高：{{ profile.height }} cm · 体重：{{ profile.weight }} kg</li>
-          <li>血糖状况：{{ profile.diabetesType === 'none' ? '无糖尿病' : profile.diabetesType === 'pre' ? '糖调受损 / 前期' : '2 型糖尿病' }}</li>
-          <li>血压情况：{{ profile.hasHypertension ? '有高血压/波动，需密切监测' : '血压正常范围' }}</li>
-          <li>训练目标：{{ profile.goal === 'weight-loss' ? '减脂与体重管理' : profile.goal === 'fitness' ? '提升体能与肌力' : '控糖控压，整体代谢改善' }}</li>
+          <li v-for="item in profileSummaryItems" :key="item">{{ item }}</li>
         </ul>
-        <p class="profile-summary__note">
-          体况调整后，训练与饮食建议会重新生成；若出现异常症状，务必先咨询医生或运动康复师。
-        </p>
+        <p class="profile-summary__note">{{ t('app.summaryNote') }}</p>
       </article>
     </section>
   </main>
@@ -247,9 +300,43 @@ function setActiveTab(tabId) {
   border-color: var(--accent);
 }
 
-.plan-insights {
-  display: grid;
-  gap: 16px;
+.locale-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.locale-toggle__label {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.locale-toggle__buttons {
+  display: inline-flex;
+  border: 1px solid var(--surface-border);
+  border-radius: 999px;
+  padding: 4px;
+  background: var(--surface-card);
+  box-shadow: var(--shadow-subtle);
+}
+
+.locale-toggle__button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.locale-toggle__button.is-active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.locale-toggle__button:not(.is-active):hover {
+  background: var(--surface-muted);
 }
 
 .tab-bar {
@@ -289,6 +376,11 @@ function setActiveTab(tabId) {
 .tab-panel {
   display: grid;
   gap: 20px;
+}
+
+.plan-insights {
+  display: grid;
+  gap: 16px;
 }
 
 .plan-insights__card {
@@ -368,3 +460,4 @@ function setActiveTab(tabId) {
   }
 }
 </style>
+

@@ -1,6 +1,7 @@
 <script setup>
 import { toRefs } from 'vue'
 import NutritionDayCard from './NutritionDayCard.vue'
+import { useI18n } from '../composables/useI18n'
 
 const props = defineProps({
   plan: {
@@ -18,21 +19,22 @@ const props = defineProps({
 })
 
 const { plan, meta, todayId } = toRefs(props)
+const { t } = useI18n()
 </script>
 
 <template>
-  <section class="nutrition-plan" aria-label="每周饮食建议">
+  <section class="nutrition-plan" :aria-label="t('tabs.nutrition')">
     <header class="nutrition-plan__header">
       <div>
-        <h2>饮食指导</h2>
+        <h2>{{ t('nutritionPlan.title') }}</h2>
         <p>
-          推荐热量：
+          {{ t('nutritionPlan.recommended') }}
           <strong>{{ meta.calorieTarget }} kcal</strong> ·
           {{ meta.hydration }}
         </p>
         <p>{{ meta.fibreGoal }}</p>
         <p class="nutrition-plan__doc">
-          更详细的食材替换与准备建议见 `docs/nutrition-plan.md`。
+          {{ t('nutritionPlan.docNote') }}
         </p>
       </div>
     </header>

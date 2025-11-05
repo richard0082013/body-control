@@ -1,18 +1,22 @@
 <script setup>
-defineProps({
+import { useI18n } from '../composables/useI18n'
+
+const props = defineProps({
   summary: {
     type: Object,
     required: true,
   },
 })
+
+const { t } = useI18n()
 </script>
 
 <template>
   <section class="weekly-progress" aria-labelledby="weekly-progress-title">
     <header class="weekly-progress__header">
-      <h1 id="weekly-progress-title">家庭训练进度概览</h1>
+      <h1 id="weekly-progress-title">{{ t('weeklyProgress.title') }}</h1>
       <p class="weekly-progress__subtitle">
-        每周保持持续与稳定，重点关注血糖与血压反馈。
+        {{ t('weeklyProgress.subtitle') }}
       </p>
     </header>
 
@@ -23,19 +27,19 @@ defineProps({
 
     <dl class="weekly-progress__stats">
       <div>
-        <dt>已完成动作</dt>
+        <dt>{{ t('weeklyProgress.stats.completedMoves') }}</dt>
         <dd>
           {{ summary.completedSegments }}/{{ summary.totalSegments }}
         </dd>
       </div>
       <div>
-        <dt>完成日</dt>
+        <dt>{{ t('weeklyProgress.stats.completedDays') }}</dt>
         <dd>
           {{ summary.completedDays }}/{{ summary.activeDays }}
         </dd>
       </div>
       <div>
-        <dt>周完成度</dt>
+        <dt>{{ t('weeklyProgress.stats.completionRate') }}</dt>
         <dd>{{ summary.completionRate }}%</dd>
       </div>
     </dl>
