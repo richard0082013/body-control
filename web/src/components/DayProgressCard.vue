@@ -1,4 +1,8 @@
 <script setup>
+import { computed } from 'vue'
+import ExerciseVisual from './ExerciseVisual.vue'
+import { exerciseById, exerciseVisuals } from '../data/exerciseLibrary'
+
 const props = defineProps({
   day: {
     type: Object,
@@ -19,6 +23,28 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['toggle', 'updateNotes', 'reset'])
+
+const exerciseDetails = computed(() => {
+  if (!props.day.exercises || props.day.exercises.length === 0) {
+    return []
+  }
+
+  return props.day.exercises
+    .map((entry) => {
+      const meta = exerciseById[entry.id]
+      if (!meta) {
+        return null
+      }
+
+      return {
+        ...meta,
+        prescription: entry.prescription || '',
+        emphasis: entry.emphasis || '',
+        visualFrames: exerciseVisuals[meta.visualId] || [],
+      }
+    })
+    .filter(Boolean)
+})
 
 function handleToggle(segmentId) {
   emit('toggle', props.day.id, segmentId)
@@ -58,6 +84,46 @@ function handleReset() {
         <ul>
           <li v-for="item in day.strength" :key="item">{{ item }}</li>
         </ul>
+      </div>
+
+      <div
+        v-if="exerciseDetails.length"
+        class="day-card__section day-card__exercise-section"
+      >
+        <h3>图文示范</h3>
+        <div class="exercise-grid">
+          <article
+            v-for="exercise in exerciseDetails"
+            :key="exercise.id"
+            class="exercise-card"
+          >
+            <header class="exercise-card__header">
+              <div>
+                <p class="exercise-card__name">{{ exercise.name }}</p>
+                <p v-if="exercise.prescription" class="exercise-card__prescription">
+                  {{ exercise.prescription }}
+                </p>
+              </div>
+              <span v-if="exercise.emphasis" class="exercise-card__tag">
+                {{ exercise.emphasis }}
+              </span>
+            </header>
+            <ExerciseVisual
+              :title="exercise.name"
+              :frames="exercise.visualFrames"
+            />
+            <p class="exercise-card__summary">{{ exercise.summary }}</p>
+            <ul class="exercise-card__steps">
+              <li v-for="step in exercise.steps" :key="step">{{ step }}</li>
+            </ul>
+            <div class="exercise-card__tips">
+              <p>小提示</p>
+              <ul>
+                <li v-for="tip in exercise.tips" :key="tip">{{ tip }}</li>
+              </ul>
+            </div>
+          </article>
+        </div>
       </div>
 
       <div class="day-card__section day-card__segment-list">
@@ -177,6 +243,92 @@ function handleReset() {
   padding-left: 20px;
   color: var(--text-primary);
   line-height: 1.5;
+}
+
+.day-card__exercise-section {
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid var(--surface-border);
+  background: var(--surface-muted);
+}
+
+.exercise-grid {
+  display: grid;
+  gap: 14px;
+}
+
+@media (min-width: 640px) {
+  .exercise-grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+}
+
+.exercise-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--surface-card);
+  border: 1px solid rgba(148, 163, 184, 0.36);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.exercise-card__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.exercise-card__name {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.exercise-card__prescription {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.exercise-card__tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.exercise-card__summary {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.exercise-card__steps,
+.exercise-card__tips ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-primary);
+  line-height: 1.5;
+  font-size: 0.9rem;
+}
+
+.exercise-card__tips {
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+}
+
+.exercise-card__tips p {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
 .day-card__segment-list ul {

@@ -10,6 +10,12 @@ export const weeklyPlan = [
       '跪姿俯卧撑 ×8',
       '站姿侧抬腿 ×12/侧',
     ],
+    exercises: [
+      { id: 'seated-band-row', prescription: '每组 12 次 ×2-3 组', emphasis: '背部' },
+      { id: 'wall-squat', prescription: '每组 10 次 ×2 组', emphasis: '腿部' },
+      { id: 'kneeling-push-up', prescription: '每组 8 次 ×2 组', emphasis: '上肢' },
+      { id: 'standing-side-leg-raise', prescription: '每侧 12 次 ×2 组', emphasis: '臀部' },
+    ],
     reminders: [
       '训练前后测量血糖，并记录在应用中。',
       '第一周先以 2 组为主，根据状态再提高。',
@@ -48,6 +54,12 @@ export const weeklyPlan = [
       '坐姿转体 ×12/侧',
       '鸟狗式 ×10/侧（腰不适时改桌面支撑踢腿）',
     ],
+    exercises: [
+      { id: 'cat-cow', prescription: '12 次 ×2 组', emphasis: '脊柱' },
+      { id: 'glute-bridge', prescription: '10 次 ×2-3 组', emphasis: '臀部' },
+      { id: 'seated-spinal-twist', prescription: '每侧 12 次 ×2 组', emphasis: '灵活性' },
+      { id: 'bird-dog', prescription: '每侧 10 次 ×2 组', emphasis: '核心' },
+    ],
     reminders: [
       '控制动作节奏，核心保持激活。',
       '若血糖低于 6 mmol/L，先补充少量碳水再开始。',
@@ -81,6 +93,11 @@ export const weeklyPlan = [
     focus: '主动恢复与血糖管理',
     cardio: '饭后 30 分钟内，舒缓步行 20-30 分钟。',
     strength: ['轻度拉伸或弹力带牵伸，重点关注小腿与背部。'],
+    exercises: [
+      { id: 'downward-dog', prescription: '保持 3-5 次呼吸 ×2', emphasis: '后链' },
+      { id: 'quad-stretch', prescription: '每侧 30 秒 ×2', emphasis: '大腿前侧' },
+      { id: 'chest-stretch', prescription: '每侧 30 秒 ×2', emphasis: '胸肩' },
+    ],
     reminders: [
       '如果天气或空间受限，可在家原地走或跟随轻柔操。',
       '记录步行时间与感受，保持舒适对话节奏。',
@@ -113,6 +130,12 @@ export const weeklyPlan = [
       '弓步后撤 ×8/腿',
       '站姿提踵 ×15',
       '弹力带臀外展 ×12',
+    ],
+    exercises: [
+      { id: 'chair-stand', prescription: '每组 12 次 ×2 组', emphasis: '腿部' },
+      { id: 'reverse-lunge', prescription: '每腿 8 次 ×2 组', emphasis: '臀腿' },
+      { id: 'standing-calf-raise', prescription: '15 次 ×2-3 组', emphasis: '小腿' },
+      { id: 'band-hip-abduction', prescription: '每侧 12 次 ×2 组', emphasis: '臀侧' },
     ],
     reminders: [
       '间歇有氧期间保持安全支撑，避免动作过快。',
@@ -152,6 +175,12 @@ export const weeklyPlan = [
       '跪姿平板支撑 20 秒 ×2',
       '弹力带外旋 ×12',
     ],
+    exercises: [
+      { id: 'band-chest-press', prescription: '12 次 ×2 组', emphasis: '胸肩' },
+      { id: 'single-arm-row-seated', prescription: '每臂 12 次 ×2 组', emphasis: '背部' },
+      { id: 'kneeling-plank', prescription: '保持 20 秒 ×2-3 次', emphasis: '核心' },
+      { id: 'band-external-rotation', prescription: '12 次 ×2 组', emphasis: '肩袖' },
+    ],
     reminders: [
       '肩关节注意角度，阻力带不要过紧。',
       '如果出现手麻或肩痛，减少幅度或改成更轻阻力。',
@@ -190,6 +219,12 @@ export const weeklyPlan = [
       '反向卷腹 ×12',
       '站姿推肩（弹力带或轻哑铃） ×10',
     ],
+    exercises: [
+      { id: 'standing-band-row', prescription: '12 次 ×2-3 组', emphasis: '背部' },
+      { id: 'lateral-step', prescription: '每侧 10 步 ×3 轮', emphasis: '臀腿' },
+      { id: 'reverse-crunch', prescription: '12 次 ×2 组', emphasis: '核心' },
+      { id: 'standing-shoulder-press', prescription: '10 次 ×2 组', emphasis: '肩部' },
+    ],
     reminders: [
       '如果感觉疲劳，可减少循环次数或调整间隔。',
       '保持呼吸节奏，不要屏气。',
@@ -226,6 +261,11 @@ export const weeklyPlan = [
       '下犬式 30 秒 ×2',
       '股四头肌拉伸 30 秒 ×2',
       '胸肌打开拉伸 30 秒 ×2',
+    ],
+    exercises: [
+      { id: 'downward-dog', prescription: '30 秒 ×2 组', emphasis: '全身拉伸' },
+      { id: 'quad-stretch', prescription: '每侧 30 秒 ×2', emphasis: '大腿前侧' },
+      { id: 'chest-stretch', prescription: '每侧 30 秒 ×2', emphasis: '胸肩' },
     ],
     reminders: [
       '关注身体反馈，必要时安排完全休息日。',
