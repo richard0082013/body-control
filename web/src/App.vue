@@ -135,14 +135,6 @@ function localeLabel(option) {
         <p class="page-header__today">
           {{ t('app.today') }}<strong>{{ todayLabel }}</strong>
         </p>
-        <button
-          v-if="activeTab === 'training'"
-          type="button"
-          class="reset-all"
-          @click="resetAll"
-        >
-          {{ t('app.clearProgress') }}
-        </button>
       </div>
     </header>
 
@@ -169,6 +161,11 @@ function localeLabel(option) {
       role="tabpanel"
       aria-labelledby="tab-training"
     >
+      <div class="training-actions">
+        <button type="button" class="reset-all" @click="resetAll">
+          {{ t('app.clearProgress') }}
+        </button>
+      </div>
       <section class="plan-insights" :aria-label="t('app.planInsightsTitle')">
         <article class="plan-insights__card">
           <h3>{{ t('app.planInsightsTitle') }}</h3>
@@ -383,6 +380,11 @@ function localeLabel(option) {
   gap: 16px;
 }
 
+.training-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .plan-insights__card {
   padding: 20px;
   border-radius: 16px;
@@ -460,4 +462,3 @@ function localeLabel(option) {
   }
 }
 </style>
-
